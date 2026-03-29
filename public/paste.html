@@ -14,7 +14,7 @@
     #header a { color: #4a9eff; font-size: 0.85rem; text-decoration: none; }
     #header a:hover { text-decoration: underline; }
     h1 { font-size: 1.2rem; color: #fff; flex: 1; }
-    #meta { font-size: 0.75rem; color: #666; }
+    #meta { font-size: 0.75rem; color: #666; margin-bottom: 1rem; }
     pre {
       border: 1px solid #333; border-radius: 3px;
       overflow-x: auto; font-size: 0.88rem; line-height: 1.5;
@@ -26,6 +26,16 @@
       border-radius: 3px; font-family: monospace; font-size: 0.8rem; cursor: pointer;
     }
     #copy:hover { background: #444; }
+    #decrypt-panel { margin-bottom: 1.2rem; display: flex; gap: 0.6rem; align-items: center; }
+    #decrypt-panel input {
+      flex: 1; background: #2a2a2a; border: 1px solid #444; color: #e0e0e0;
+      padding: 0.5rem 0.6rem; font-family: monospace; font-size: 0.9rem; border-radius: 3px;
+    }
+    #decrypt-panel button {
+      padding: 0.5rem 1rem; background: #4a9eff; color: #fff;
+      border: none; border-radius: 3px; font-family: monospace; cursor: pointer;
+    }
+    #decrypt-error { color: #f87171; font-size: 0.85rem; margin-bottom: 0.8rem; }
   </style>
 </head>
 <body>
@@ -36,11 +46,18 @@
       <button id="copy" onclick="copyContent()" style="display:none">Copy</button>
     </div>
     <div id="meta"></div>
+    <div id="decrypt-error" style="display:none"></div>
+    <div id="decrypt-panel" style="display:none">
+      <input id="dec-password" type="password" placeholder="Enter password to decrypt...">
+      <button onclick="attemptDecrypt()">Decrypt</button>
+    </div>
     <pre><code id="content"></code></pre>
   </div>
 
+  <script src="/crypto.js"></script>
   <script>
     const id = location.pathname.replace(/^\//, '');
+    let pendingData = null;
 
     async function load() {
       const res = await fetch(`/api/paste/${id}`);
@@ -48,27 +65,63 @@
 
       if (data.error) {
         document.getElementById('title').textContent = 'Not found';
-        document.getElementById('content').innerHTML = `<span id="error">${data.error}</span>`;
+        const errSpan = document.createElement('span');
+        errSpan.id = 'error';
+        errSpan.textContent = data.error;
+        document.getElementById('content').replaceChildren(errSpan);
         return;
       }
 
       document.title = data.title || 'Paste ' + id;
       document.getElementById('title').textContent = data.title || 'Untitled';
-
       const created = new Date(data.created_at).toLocaleString();
-      const expiry = data.expires_at
-        ? ' · expires ' + new Date(data.expires_at).toLocaleString()
-        : '';
+      const expiry = data.expires_at ? ' · expires ' + new Date(data.expires_at).toLocaleString() : '';
       document.getElementById('meta').textContent = `${data.language} · created ${created}${expiry}`;
 
+      if (data.encrypted) {
+        pendingData = data;
+        const fragment = location.hash.slice(1);
+        if (fragment) {
+          await attemptDecrypt(decodeURIComponent(fragment));
+        } else {
+          document.getElementById('decrypt-panel').style.display = 'flex';
+        }
+      } else {
+        renderContent(data.content, data.language);
+      }
+    }
+
+    function renderContent(plaintext, language) {
       const block = document.getElementById('content');
-      block.textContent = data.content;
-      if (data.language && data.language !== 'plaintext') {
-        block.className = `language-${data.language}`;
+      block.textContent = plaintext;
+      if (language && language !== 'plaintext') {
+        block.className = `language-${language}`;
         hljs.highlightElement(block);
       }
       document.getElementById('copy').style.display = 'inline-block';
     }
+
+    async function attemptDecrypt(passwordOverride) {
+      const password = passwordOverride ?? document.getElementById('dec-password').value;
+      const errEl = document.getElementById('decrypt-error');
+      errEl.style.display = 'none';
+      try {
+        const plaintext = await decryptContent(pendingData.content, password);
+        document.getElementById('decrypt-panel').style.display = 'none';
+        renderContent(plaintext, pendingData.language);
+      } catch (e) {
+        if (!passwordOverride) {
+          errEl.textContent = e.message;
+          errEl.style.display = 'block';
+        } else {
+          document.getElementById('decrypt-panel').style.display = 'flex';
+        }
+      }
+    }
+
+    document.getElementById('dec-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') attemptDecrypt();
+    });
 
     function copyContent() {
       navigator.clipboard.writeText(document.getElementById('content').innerText);

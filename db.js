@@ -8,13 +8,18 @@ db.exec(`
     content TEXT NOT NULL,
     language TEXT DEFAULT 'plaintext',
     created_at INTEGER NOT NULL,
-    expires_at INTEGER
+    expires_at INTEGER,
+    encrypted INTEGER NOT NULL DEFAULT 0
   )
 `);
 
+try {
+  db.exec(`ALTER TABLE pastes ADD COLUMN encrypted INTEGER NOT NULL DEFAULT 0`);
+} catch (_) {}
+
 const insert = db.prepare(`
-  INSERT INTO pastes (id, title, content, language, created_at, expires_at)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO pastes (id, title, content, language, created_at, expires_at, encrypted)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 const get = db.prepare(`SELECT * FROM pastes WHERE id = ?`);
@@ -22,8 +27,8 @@ const del = db.prepare(`DELETE FROM pastes WHERE id = ?`);
 const expire = db.prepare(`DELETE FROM pastes WHERE expires_at IS NOT NULL AND expires_at < ?`);
 
 module.exports = {
-  insert({ id, title, content, language, created_at, expires_at }) {
-    insert.run(id, title ?? null, content, language ?? 'plaintext', created_at, expires_at ?? null);
+  insert({ id, title, content, language, created_at, expires_at, encrypted }) {
+    insert.run(id, title ?? null, content, language ?? 'plaintext', created_at, expires_at ?? null, encrypted ? 1 : 0);
   },
   get(id) {
     const row = get.get(id);

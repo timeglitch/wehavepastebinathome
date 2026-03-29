@@ -1,13 +1,20 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static('public'));
+
+const createLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  message: { error: 'Too many pastes created, please try again later.' },
+});
 
 function randomId() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -38,8 +45,8 @@ function uniqueId(title) {
 }
 
 // Create paste
-app.post('/api/paste', (req, res) => {
-  const { title, content, language, expiry } = req.body;
+app.post('/api/paste', createLimiter, (req, res) => {
+  const { title, content, language, expiry, encrypted } = req.body;
 
   if (!content || !content.trim()) {
     return res.status(400).json({ error: 'Content is required' });
@@ -51,7 +58,7 @@ app.post('/api/paste', (req, res) => {
   const seconds = expiryMap[expiry];
   const expires_at = seconds ? now + seconds * 1000 : null;
 
-  db.insert({ id, title: title || null, content, language: language || 'plaintext', created_at: now, expires_at });
+  db.insert({ id, title: title || null, content, language: language || 'plaintext', created_at: now, expires_at, encrypted: !!encrypted });
 
   res.json({ id, url: `/${id}` });
 });
