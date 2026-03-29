@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paste</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #1a1a1a; color: #e0e0e0; padding: 2rem; }
+    #container { max-width: 900px; margin: 0 auto; }
+    #header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+    #header a { color: #4a9eff; font-size: 0.85rem; text-decoration: none; }
+    #header a:hover { text-decoration: underline; }
+    h1 { font-size: 1.2rem; color: #fff; flex: 1; }
+    #meta { font-size: 0.75rem; color: #666; }
+    pre {
+      border: 1px solid #333; border-radius: 3px;
+      overflow-x: auto; font-size: 0.88rem; line-height: 1.5;
+    }
+    pre code.hljs { padding: 1rem; white-space: pre-wrap; word-break: break-word; }
+    #error { color: #f87171; }
+    #copy {
+      padding: 0.4rem 0.9rem; background: #333; color: #ccc; border: 1px solid #555;
+      border-radius: 3px; font-family: monospace; font-size: 0.8rem; cursor: pointer;
+    }
+    #copy:hover { background: #444; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="header">
+      <a href="/">← New paste</a>
+      <h1 id="title">Loading...</h1>
+      <button id="copy" onclick="copyContent()" style="display:none">Copy</button>
+    </div>
+    <div id="meta"></div>
+    <pre><code id="content"></code></pre>
+  </div>
+
+  <script>
+    const id = location.pathname.replace(/^\//, '');
+
+    async function load() {
+      const res = await fetch(`/api/paste/${id}`);
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('title').textContent = 'Not found';
+        document.getElementById('content').innerHTML = `<span id="error">${data.error}</span>`;
+        return;
+      }
+
+      document.title = data.title || 'Paste ' + id;
+      document.getElementById('title').textContent = data.title || 'Untitled';
+
+      const created = new Date(data.created_at).toLocaleString();
+      const expiry = data.expires_at
+        ? ' · expires ' + new Date(data.expires_at).toLocaleString()
+        : '';
+      document.getElementById('meta').textContent = `${data.language} · created ${created}${expiry}`;
+
+      const block = document.getElementById('content');
+      block.textContent = data.content;
+      if (data.language && data.language !== 'plaintext') {
+        block.className = `language-${data.language}`;
+        hljs.highlightElement(block);
+      }
+      document.getElementById('copy').style.display = 'inline-block';
+    }
+
+    function copyContent() {
+      navigator.clipboard.writeText(document.getElementById('content').innerText);
+      const btn = document.getElementById('copy');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+
+    load();
+  </script>
+</body>
+</html>

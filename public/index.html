@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pastebin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #1a1a1a; color: #e0e0e0; padding: 2rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #fff; }
+    label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; margin-top: 1rem; }
+    input, select, textarea {
+      width: 100%; background: #2a2a2a; border: 1px solid #444; color: #e0e0e0;
+      padding: 0.5rem 0.6rem; font-family: monospace; font-size: 0.9rem; border-radius: 3px;
+    }
+    textarea { height: 400px; resize: vertical; }
+    button {
+      margin-top: 1.2rem; padding: 0.6rem 1.4rem; background: #4a9eff; color: #fff;
+      border: none; border-radius: 3px; font-family: monospace; font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { background: #3a8eef; }
+    #result { margin-top: 1.2rem; padding: 0.8rem; background: #2a2a2a; border-radius: 3px; display: none; }
+    #result a { color: #4a9eff; }
+    .row { display: flex; gap: 1rem; }
+    .row > div { flex: 1; }
+    @media (max-width: 600px) { .row { flex-direction: column; } }
+    #container { max-width: 800px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>wehavepastebinathome</h1>
+    <div class="row">
+      <div>
+        <label for="title">Title (optional)</label>
+        <input id="title" type="text" placeholder="Untitled">
+      </div>
+      <div>
+        <label for="language">Syntax</label>
+        <select id="language">
+          <option value="plaintext">Plain text</option>
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="python">Python</option>
+          <option value="bash">Bash</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="json">JSON</option>
+          <option value="sql">SQL</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+        </select>
+      </div>
+      <div>
+        <label for="expiry">Expires</label>
+        <select id="expiry">
+          <option value="">Never</option>
+          <option value="1h">1 hour</option>
+          <option value="1d">1 day</option>
+          <option value="1w">1 week</option>
+          <option value="1m">1 month</option>
+        </select>
+      </div>
+    </div>
+    <label for="content">Content</label>
+    <textarea id="content" placeholder="Paste your content here..."></textarea>
+    <button onclick="submit()">Create Paste</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function submit() {
+      const content = document.getElementById('content').value;
+      if (!content.trim()) return;
+
+      const res = await fetch('/api/paste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('title').value,
+          content,
+          language: document.getElementById('language').value,
+          expiry: document.getElementById('expiry').value,
+        }),
+      });
+
+      const data = await res.json();
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+
+      if (data.error) {
+        result.textContent = 'Error: ' + data.error;
+      } else {
+        const url = window.location.origin + data.url;
+        result.innerHTML = `Paste created: <a href="${data.url}">${url}</a>`;
+      }
+    }
+
+    document.getElementById('content').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') submit();
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const el = e.target;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        el.value = el.value.slice(0, start) + '  ' + el.value.slice(end);
+        el.selectionStart = el.selectionEnd = start + 2;
+      }
+    });
+  </script>
+</body>
+</html>
