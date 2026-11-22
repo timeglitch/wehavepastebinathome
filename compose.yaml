@@ -1,6 +1,9 @@
 services:
   pastebin:
-    build: .
+    build:
+      context: .
+      # Always fetch the newest node:24-alpine when building, for OS/Node fixes.
+      pull: true
     restart: unless-stopped
     # Node as PID 1 ignores SIGTERM; a tiny init forwards it so stops are instant.
     init: true

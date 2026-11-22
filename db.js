@@ -25,6 +25,9 @@ const insert = db.prepare(`
 const get = db.prepare(`SELECT * FROM pastes WHERE id = ?`);
 const del = db.prepare(`DELETE FROM pastes WHERE id = ?`);
 const expire = db.prepare(`DELETE FROM pastes WHERE expires_at IS NOT NULL AND expires_at < ?`);
+const pageSize = db.prepare('PRAGMA page_size');
+const pageCount = db.prepare('PRAGMA page_count');
+const freePages = db.prepare('PRAGMA freelist_count');
 
 module.exports = {
   insert({ id, title, content, language, created_at, expires_at, encrypted }) {
@@ -41,5 +44,10 @@ module.exports = {
   },
   cleanup() {
     expire.run(Date.now());
+  },
+  // Bytes in use; free pages left by deletes are reused, so they don't count.
+  usedBytes() {
+    const used = pageCount.get().page_count - freePages.get().freelist_count;
+    return used * pageSize.get().page_size;
   },
 };

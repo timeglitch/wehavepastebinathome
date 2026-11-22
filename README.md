@@ -37,7 +37,8 @@ ssh frank-optiplex 'cd ~/Projects/wehavepastebinathome && docker compose up -d -
 
 - The container runs as the unprivileged `node` user and publishes on `127.0.0.1` only, so the tunnel is the sole way in.
 - Pastes live in `./data/pastes.db` beside `compose.yaml` (bind-mounted at `/data`). Back up that folder; never rsync over it.
-- Env vars: `HOST` (default `127.0.0.1`), `PORT` (default `3000`), `DB_PATH` (default `pastes.db`).
+- Env vars: `HOST` (default `127.0.0.1`), `PORT` (default `3000`), `DB_PATH` (default `pastes.db`), `MAX_DB_BYTES` (default 10 GiB; new pastes get 507 above it).
+- Delete a paste (takedowns): `sqlite3 data/pastes.db "DELETE FROM pastes WHERE id = '<id>';"` on the server. 
 
 ## Project structure
 
