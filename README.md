@@ -24,41 +24,20 @@ npm start       # production
 
 Runs at http://localhost:3000. The SQLite database (`pastes.db`) is created automatically on first run.
 
-## Deploying to AWS
+## Deploying
 
-Provisions a `t3.micro` EC2 instance (free tier eligible) with nginx + PM2.
-
-**Prerequisites**
-
-- [Terraform](https://developer.hashicorp.com/terraform/install)
-- [AWS CLI](https://aws.amazon.com/cli/) configured (`aws configure`)
-- An EC2 key pair — create one in the AWS console and download the `.pem` file
-
-**First deploy**
+Runs in Docker on a home server, exposed through a Cloudflare Tunnel that routes
+`paste.frankzhang.org` to `http://localhost:3000`. Cloudflare terminates HTTPS.
 
 ```bash
-cd terraform
-terraform init
-terraform apply -var="key_name=your-key-name"
-# note the public_ip from the output
-
-cd ..
-./scripts/deploy.sh <public_ip> ~/.ssh/your-key-name.pem
+rsync -az --exclude node_modules/ --exclude pastes.db --exclude .git/ --exclude data/ \
+  ./ frank-optiplex:Projects/wehavepastebinathome/
+ssh frank-optiplex 'cd ~/Projects/wehavepastebinathome && docker compose up -d --build'
 ```
 
-**Subsequent deploys**
-
-```bash
-./scripts/deploy.sh <public_ip> ~/.ssh/your-key-name.pem
-```
-
-**Adding HTTPS** (requires a domain pointing at the server IP)
-
-```bash
-ssh -i ~/.ssh/your-key.pem ec2-user@<ip>
-sudo dnf install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
-```
+- The container runs as the unprivileged `node` user and publishes on `127.0.0.1` only, so the tunnel is the sole way in.
+- Pastes live in `./data/pastes.db` beside `compose.yaml` (bind-mounted at `/data`). Back up that folder; never rsync over it.
+- Env vars: `HOST` (default `127.0.0.1`), `PORT` (default `3000`), `DB_PATH` (default `pastes.db`).
 
 ## Project structure
 
@@ -69,13 +48,8 @@ public/
   index.html       Create paste form
   paste.html       Paste viewer
   crypto.js        Shared Web Crypto API helpers (PBKDF2 + AES-GCM)
-terraform/
-  main.tf          EC2 instance, security group, Elastic IP
-  variables.tf     region, key_name, instance_type
-  outputs.tf       public IP, SSH command, URL
-scripts/
-  setup.sh         User data — installs Node.js, nginx, PM2 on first boot
-  deploy.sh        Rsyncs code and restarts PM2
+Dockerfile         Production image (node:24-alpine, runs as `node`)
+compose.yaml       Service, localhost-only port, ./data bind mount
 ```
 
 ## Security
@@ -87,4 +61,4 @@ Encryption uses the browser's built-in Web Crypto API — no external libraries.
 - **Wire format:** `base64url(salt[16] + iv[12] + ciphertext)` stored in the database
 - The URL fragment (`#key`) is never sent to the server by the browser
 
-> **Note:** E2E encryption protects data at rest on the server. HTTPS is required to prevent a network attacker from tampering with the JavaScript. Run behind nginx + Certbot in production.
+> **Note:** E2E encryption protects data at rest on the server. HTTPS is required to prevent a network attacker from tampering with the JavaScript. In production, Cloudflare serves it over HTTPS.

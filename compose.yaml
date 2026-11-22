@@ -1,0 +1,14 @@
+services:
+  pastebin:
+    build: .
+    restart: unless-stopped
+    # Node as PID 1 ignores SIGTERM; a tiny init forwards it so stops are instant.
+    init: true
+    # Writes take milliseconds and SQLite's journal makes a kill safe anyway.
+    stop_grace_period: 2s
+    # Localhost only: the Cloudflare tunnel is the public entry point.
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      # Bind mount: data stays beside the app, owned by uid 1000 (frank on the host).
+      - ./data:/data

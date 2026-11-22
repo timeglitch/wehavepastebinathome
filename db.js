@@ -1,5 +1,5 @@
 const { DatabaseSync } = require('node:sqlite');
-const db = new DatabaseSync('pastes.db');
+const db = new DatabaseSync(process.env.DB_PATH || 'pastes.db');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS pastes (

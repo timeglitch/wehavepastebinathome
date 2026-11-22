@@ -6,7 +6,10 @@ const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Localhost only: the Cloudflare tunnel is the sole public entry point.
+const HOST = process.env.HOST || '127.0.0.1';
 
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static('public'));
 
@@ -78,4 +81,4 @@ app.get('/:id', (req, res) => {
 const DAY_MS = 24 * 60 * 60 * 1000;
 setInterval(() => db.cleanup(), DAY_MS);
 
-app.listen(PORT, () => console.log(`Pastebin running at http://localhost:${PORT}`));
+app.listen(PORT, HOST, () => console.log(`Pastebin running at http://${HOST}:${PORT}`));
