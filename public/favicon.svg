@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>wehavepastebinathome</title>
+  <rect width="512" height="512" rx="112" fill="#f4f1ea"/>
+  <g stroke="#1c1c1c" stroke-width="15" stroke-linecap="round" fill="none"><path d="M108.5 112.0L135.3 79.5"/><path d="M108.5 176.9L189.0 79.5"/><path d="M108.5 241.8L242.6 79.5"/><path d="M108.5 306.7L296.2 79.5"/><path d="M108.5 371.6L349.9 79.5"/><path d="M108.5 436.5L403.5 79.5"/><path d="M162.1 436.5L403.5 144.4"/><path d="M215.8 436.5L403.5 209.3"/><path d="M269.4 436.5L403.5 274.2"/><path d="M323.0 436.5L403.5 339.1"/><path d="M376.7 436.5L403.5 404.0"/></g>
+  <path d="M186 104H224A32 34 0 0 1 288 104H326A26 26 0 0 1 326 156H186A26 26 0 0 1 186 104Z" fill="#f4f1ea" stroke="#1c1c1c" stroke-width="14" stroke-linejoin="round"/>
+</svg>
