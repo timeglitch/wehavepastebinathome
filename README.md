@@ -40,6 +40,25 @@ ssh frank-optiplex 'cd ~/Projects/wehavepastebinathome && docker compose up -d -
 - Env vars: `HOST` (default `127.0.0.1`), `PORT` (default `3000`), `DB_PATH` (default `pastes.db`), `MAX_DB_BYTES` (default 10 GiB; new pastes get 507 above it).
 - Delete a paste (takedowns): `sqlite3 data/pastes.db "DELETE FROM pastes WHERE id = '<id>';"` on the server. 
 
+## API
+
+From a terminal: send raw text, get the link back as plain text. Options go in the query string: `title` (also sets the URL), `expiry` (`1h`, `1d`, `1w`, `1m`), `language`.
+
+```bash
+cat notes.txt | curl --data-binary @- 'https://paste.frankzhang.org/api/paste?title=notes&expiry=1d'
+# https://paste.frankzhang.org/notes
+
+curl https://paste.frankzhang.org/raw/notes      # the text back
+```
+
+| Endpoint | Body / result |
+| --- | --- |
+| `POST /api/paste` | Raw text (any non-JSON content type) → URL as plain text; or JSON `{title, content, language, expiry, encrypted}` → `{id, url}` |
+| `GET /raw/:id` | Plain text. `403` for encrypted pastes (only the browser can decrypt), `404` if missing or expired |
+| `GET /api/paste/:id` | JSON with all fields; `content` is ciphertext for encrypted pastes |
+
+Terminal uploads are never encrypted: encryption happens in the browser. Rate limit: 30 pastes per IP per 15 minutes.
+
 ## Project structure
 
 ```

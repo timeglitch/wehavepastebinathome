@@ -1,3 +1,9 @@
+// Display names, matching the Syntax dropdown on the create page.
+const LANGUAGE_NAMES = {
+  plaintext: 'Plain text', javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python',
+  bash: 'Bash', html: 'HTML', css: 'CSS', json: 'JSON', sql: 'SQL', go: 'Go', rust: 'Rust',
+};
+
 const id = location.pathname.replace(/^\//, '');
 let pendingData = null;
 
@@ -18,7 +24,22 @@ async function load() {
   document.getElementById('title').textContent = data.title || 'Untitled';
   const created = new Date(data.created_at).toLocaleString();
   const expiry = data.expires_at ? ' · expires ' + new Date(data.expires_at).toLocaleString() : '';
-  document.getElementById('meta').textContent = `${data.language} · created ${created}${expiry}`;
+  const meta = document.getElementById('meta');
+  meta.textContent = `${LANGUAGE_NAMES[data.language] ?? data.language} · created ${created}${expiry}`;
+  if (data.encrypted) {
+    // Fixed markup, no paste data in it, so innerHTML is safe here.
+    meta.insertAdjacentHTML('afterbegin',
+      '<svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>'
+      + '<path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>encrypted · ');
+  }
+
+  if (!data.encrypted) {
+    // Quiet link to the plain-text version at the end of the metadata line.
+    const raw = document.createElement('a');
+    raw.href = `/raw/${encodeURIComponent(id)}`;
+    raw.textContent = 'raw';
+    meta.append(' · ', raw);
+  }
 
   if (data.encrypted) {
     pendingData = data;
@@ -66,10 +87,8 @@ document.getElementById('dec-password').addEventListener('keydown', e => {
 });
 
 function copyContent() {
-  navigator.clipboard.writeText(document.getElementById('content').innerText);
-  const btn = document.getElementById('copy');
-  btn.textContent = 'Copied!';
-  setTimeout(() => btn.textContent = 'Copy', 1500);
+  navigator.clipboard.writeText(document.getElementById('content').innerText)
+    .then(() => toast('Paste copied to clipboard'));
 }
 
 load();

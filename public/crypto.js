@@ -39,7 +39,7 @@ async function decryptContent(encoded, password) {
     );
     return new TextDecoder().decode(plain);
   } catch {
-    throw new Error('Wrong password or corrupted data.');
+    throw new Error('Invalid password. Check that you have the correct link and password.');
   }
 }
 
